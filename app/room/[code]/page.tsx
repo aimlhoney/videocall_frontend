@@ -63,9 +63,27 @@ export default function RoomPage() {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
 
-  // Always mounted video refs — never conditionally rendered
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Callback refs: every time React mounts a new <video> element (e.g. layout
+  // switches from solo → pip), re-attach the stream so the feed stays visible.
+  const setLocalVideoRef = (el: HTMLVideoElement | null) => {
+    localVideoRef.current = el;
+    if (el && localStreamRef.current) {
+      el.srcObject = localStreamRef.current;
+      el.muted = true;
+      el.play().catch(() => {});
+    }
+  };
+
+  const setRemoteVideoRef = (el: HTMLVideoElement | null) => {
+    remoteVideoRef.current = el;
+    if (el && remoteStreamRef.current) {
+      el.srcObject = remoteStreamRef.current;
+      el.play().catch(() => {});
+    }
+  };
 
   const previewSyncedRef = useRef(false);
 
@@ -413,13 +431,13 @@ export default function RoomPage() {
               <div style={{ position: 'absolute', inset: 0 }}>
                 {remotePresent ? (
                   <>
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {remotePeer && !remotePeer.cameraOn && <CameraOffAvatar name={remotePeer.name} />}
                   </>
                 ) : (
                   // Hidden placeholder keeps remoteVideoRef mounted
                   <>
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 15 }}>
                       Connecting to {remotePeer?.name ?? 'participant'}...
                     </div>
@@ -450,7 +468,7 @@ export default function RoomPage() {
                   transform: `translate(${pipOffset.x}px, ${pipOffset.y}px)`,
                 }}
               >
-                <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                <video ref={setLocalVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
                 {!me?.cameraOn && <CameraOffAvatar name={displayName} />}
                 <div style={{ position: 'absolute', bottom: 4, left: 6, zIndex: 2 }}>
                   <span style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999 }}>You</span>
@@ -462,9 +480,9 @@ export default function RoomPage() {
           {/* ── Solo mode: just local, full width ── */}
           {isSoloMode && (
             <div style={{ width: '100%', aspectRatio: '16 / 9', position: 'relative', background: '#ddd' }}>
-              <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+              <video ref={setLocalVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
               {/* Remote video hidden but mounted so ref never breaks */}
-              <video ref={remoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
+              <video ref={setRemoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
               {!me?.cameraOn && <CameraOffAvatar name={displayName} />}
               <NameBadge name={displayName} isHost={me?.isHost ?? false} isSelf micOn={me?.micOn ?? true} />
             </div>
@@ -475,7 +493,7 @@ export default function RoomPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 2 }}>
               {/* Local tile */}
               <div style={{ aspectRatio: '16 / 9', position: 'relative', background: '#ddd' }}>
-                <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                <video ref={setLocalVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
                 {!me?.cameraOn && <CameraOffAvatar name={displayName} />}
                 <NameBadge name={displayName} isHost={me?.isHost ?? false} isSelf micOn={me?.micOn ?? true} />
               </div>
@@ -483,12 +501,12 @@ export default function RoomPage() {
               <div style={{ aspectRatio: '16 / 9', position: 'relative', background: '#ddd' }}>
                 {remotePresent ? (
                   <>
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {remotePeer && !remotePeer.cameraOn && <CameraOffAvatar name={remotePeer.name} />}
                   </>
                 ) : (
                   <>
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 14 }}>
                       Waiting for another participant
                     </div>
