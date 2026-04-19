@@ -1,4 +1,4 @@
-// File: /Users/honeysharma/kiro_apps/teacher-hiring-platform/VideoPlatform/apps/web/app/room/[code]/page.tsx
+// File: /home/ubuntu/videocall_app/videocall_frontend/app/room/[code]/page.tsx
 import * as entry from '../../../../../app/room/[code]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

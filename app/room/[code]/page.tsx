@@ -16,7 +16,19 @@ interface Participant {
 }
 
 const rtcConfig: RTCConfiguration = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+  iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  {
+    urls: [
+      'turn:16.171.9.161:3478?transport=udp',
+      'turn:16.171.9.161:3478?transport=tcp',
+    ],
+    username: 'honey',
+    credential: 'honeyturn123'
+  }
+],
 };
 
 function CameraOffAvatar({ name }: { name: string }) {
@@ -98,6 +110,8 @@ export default function RoomPage() {
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState('');
   const [remotePresent, setRemotePresent] = useState(false);
+  const [connectionTimeout, setConnectionTimeout] = useState(false);
+  const connectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [roomStatus, setRoomStatus] = useState<'WAITING' | 'ACTIVE' | 'ENDED'>('WAITING');
 
   const [userId] = useState(() => {
@@ -188,6 +202,8 @@ export default function RoomPage() {
       const stream = event.streams[0];
       if (!stream) return;
       remoteStreamRef.current = stream;
+      if (connectionTimerRef.current) { clearTimeout(connectionTimerRef.current); connectionTimerRef.current = null; }
+      setConnectionTimeout(false);
       setRemotePresent(true);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
@@ -264,6 +280,8 @@ export default function RoomPage() {
       const others = data.participants.filter((p) => p.userId !== userId);
       if (others.length === 0) { closePeer(); return; }
       if (!pcRef.current) createPeerConnection();
+      if (connectionTimerRef.current) clearTimeout(connectionTimerRef.current);
+      connectionTimerRef.current = setTimeout(() => { setConnectionTimeout(true); }, 15000);
       if (others.length === 1 && userId < others[0].userId) {
         try { await makeOffer(); } catch (err) { console.error('offer error', err); }
       }
@@ -438,8 +456,19 @@ export default function RoomPage() {
                   // Hidden placeholder keeps remoteVideoRef mounted
                   <>
                     <video ref={setRemoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 15 }}>
-                      Connecting to {remotePeer?.name ?? 'participant'}...
+                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 15, gap: 12 }}>
+                      {connectionTimeout ? (
+                        <>
+                          <div style={{ color: '#ff6b6b', fontSize: 16 }}>Could not connect to {remotePeer?.name ?? 'participant'}</div>
+                          <div style={{ fontSize: 13, color: '#888', textAlign: 'center', padding: '0 20px' }}>Connection failed. Please check your internet and try rejoining.</div>
+                          <button onClick={() => { setConnectionTimeout(false); window.location.reload(); }} style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, background: '#4a90e2', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>Rejoin Room</button>
+                        </>
+                      ) : (
+                        <>
+                          <div>Connecting to {remotePeer?.name ?? 'participant'}...</div>
+                          <div style={{ fontSize: 12, color: '#666' }}>This may take a few seconds</div>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
